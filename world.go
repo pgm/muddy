@@ -81,3 +81,22 @@ func (w *World) Clone() *World {
 // text is normal by default
 // [Name] signifies it's an object by name (maybe obj ID ?)
 // [Name text]
+
+func markupToBlocks(text string) []*Block {
+	return []*Block{NewTextBlock(text)}
+}
+
+func NewTextBlock(text string) *Block {
+	return &Block{Type: "text", Text: text}
+}
+
+func (w *World) GetView(playerID int) *View {
+	player := w.objects[playerID]
+
+	room := player.Parent
+	ctx := &Context{Player: player}
+
+	description := room.Call(ctx, "getDescription").(string)
+
+	return &View{Content: markupToBlocks(description)}
+}

@@ -1,5 +1,7 @@
 package muddy
 
+import "log"
+
 const RoomClassName = "Room"
 const PlayerClassName = "Player"
 const NamedClassName = "Named"
@@ -64,8 +66,12 @@ func NewWorldBasics(world *World) *WorldBasics {
 	})
 	Player := Named.Subclass(PlayerClassName)
 
-	return &WorldBasics{World: world, Named: Named, Room: Room, Thing: Thing, Item: Item,
-		Part: Part, Exit: Exit, Player: Player}
+	return &WorldBasics{World: world,
+		Named: Named,
+		Room:  Room, Thing: Thing, Item: Item,
+		Part: Part, Exit: Exit, Player: Player,
+		events:       make(chan interface{}),
+		snapshotChan: make(chan *World)}
 }
 
 type WorldBasics struct {
@@ -138,10 +144,12 @@ func (world *WorldBasics) eventLoop() {
 	// read from events until channel is closed. For each event, update world and
 	// send a fresh snapshot of the world to snapshotChan
 	for {
+		log.Printf("Reading event chan %v", world.events)
 		event, ok := <-world.events
 		if !ok {
 			break
 		}
+		log.Printf("got event %v", event)
 
 		switch e := event.(type) {
 		case *NewPlayerEvent:
@@ -152,6 +160,7 @@ func (world *WorldBasics) eventLoop() {
 			handleGameEvent(world, e)
 		}
 
+		log.Printf("Sending out snapshot")
 		// take a snapshot and notify anyone listening the new state of the world
 		snapshot := world.World.Clone()
 		world.snapshotChan <- snapshot

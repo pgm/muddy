@@ -3,6 +3,7 @@ package muddy
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"text/template"
 
@@ -24,7 +25,10 @@ type Universe struct {
 }
 
 func newUniverse() *Universe {
-	return &Universe{events: make(chan interface{})}
+	return &Universe{events: make(chan interface{}),
+		worlds:                  make(map[string]*WorldBasics),
+		clients:                 make(map[int]*Client),
+		clientCountPerSessionID: make(map[string]int)}
 }
 
 func (universe *Universe) eventLoop() {
@@ -43,16 +47,21 @@ func (universe *Universe) eventLoop() {
 
 			world, worldExists := universe.worlds[e.client.worldID]
 			if !worldExists {
+				log.Printf("Creating world %s", e.client.worldID)
 				world = NewWorldBasics(NewWorld())
 				go world.eventLoop()
 			}
 
 			existingClientCount := universe.clientCountPerSessionID[e.client.sessionID]
 			if existingClientCount == 0 {
+				log.Printf("Creating new sesion %s", e.client.sessionID)
 				playerIDChan := make(chan int)
+				log.Printf("Sending to %v", world.events)
 				world.events <- &NewPlayerEvent{sessionID: e.client.sessionID, playerIDChan: playerIDChan}
+				log.Printf("Waiting for player ID")
 				playerID := <-playerIDChan
 				e.client.playerID = playerID
+				log.Printf("Session %s is associated with player %d", e.client.sessionID, e.client.playerID)
 			}
 			universe.clientCountPerSessionID[e.client.sessionID] = existingClientCount + 1
 
@@ -107,7 +116,8 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	http.ServeFile(w, r, "home.html")
+	// http.ServeFile(w, r, "home.html")
+	w.Write([]byte("<html><body><a href=\"/game\">Go</a></body></html>"))
 }
 
 var lettersAndNumbers = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -132,18 +142,22 @@ func newPlayer(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/game/"+gameID+"/"+playerID, http.StatusSeeOther)
 }
 
+type gameUIData struct {
+	URL string
+}
+
 func gameUI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameID := vars["gameID"]
 	sessionID := vars["sessionID"]
 	websocketURL := "/game/" + gameID + "/" + sessionID + "/ws"
 
-	t, err := template.New("foo").Parse(`{{define "T"}}<html><body>{{.}}</body></html>`)
+	t, err := template.New("foo").Parse(`<html><body>{{.URL}}</body></html>`)
 	if err != nil {
 		log.Fatalf("Error parsing template: %s", err)
 	}
 
-	err = t.ExecuteTemplate(w, "T", websocketURL)
+	err = t.Execute(w, &gameUIData{URL: websocketURL})
 	if err != nil {
 		log.Fatalf("Error executing template: %s", err)
 	}
@@ -206,7 +220,7 @@ func inboundMessageLoop(client *Client) {
 	}
 }
 
-func main(addr string) {
+func createServer() *http.Server {
 	universe := newUniverse()
 	go universe.eventLoop()
 
@@ -218,10 +232,28 @@ func main(addr string) {
 	r.HandleFunc("/game/{gameID}/{sessionID}/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(universe, w, r)
 	})
-	http.Handle("/", r)
 
-	err := http.ListenAndServe(addr, nil)
+	srv := &http.Server{
+		Handler: r,
+	}
+	return srv
+}
+
+func createListener(addr string) net.Listener {
+	log.Printf("Listening on %s...", addr)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal("net.Listen: ", err)
+	}
+	return ln
+}
+
+func Start(addr string) {
+	srv := createServer()
+	ln := createListener(addr)
+
+	err := srv.Serve(ln)
+	if err != nil {
+		log.Fatal("srv.Serve(ln): ", err)
 	}
 }
