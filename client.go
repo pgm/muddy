@@ -35,4 +35,5 @@ type ClientMessageEvent struct {
 
 type NewSnapshotEvent struct {
 	snapshot *World
+	worldID  string
 }

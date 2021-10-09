@@ -12,7 +12,11 @@ import (
 func TestWSBasics(t *testing.T) {
 	addr := "127.0.0.1:2700"
 
-	srv := createServer()
+	builder := func() *WorldBasics {
+		return NewWorldBasics(NewWorld())
+	}
+
+	srv := createServer(builder)
 	ln := createListener(addr)
 
 	go func() {

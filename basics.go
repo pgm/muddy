@@ -66,22 +66,30 @@ func NewWorldBasics(world *World) *WorldBasics {
 	})
 	Player := Named.Subclass(PlayerClassName)
 
-	return &WorldBasics{World: world,
-		Named: Named,
-		Room:  Room, Thing: Thing, Item: Item,
-		Part: Part, Exit: Exit, Player: Player,
-		events:       make(chan interface{}),
-		snapshotChan: make(chan *World)}
+	basics := &WorldBasics{World: world,
+		Named:    Named,
+		Room:     Room,
+		Thing:    Thing,
+		Item:     Item,
+		Part:     Part,
+		Exit:     Exit,
+		Player:   Player,
+		events:   make(chan interface{}),
+		sessions: make(map[string]*Session)}
+
+	basics.Lobby = basics.AddRoom("lobby")
+	basics.Lobby.Set("description", "A grand lobby")
+	basics.Nowhere = basics.AddRoom("nowhere")
+
+	return basics
 }
 
 type WorldBasics struct {
-	World          *World
-	getInitialRoom func() *Object
-	sessions       map[string]*Session
+	World    *World
+	sessions map[string]*Session
 
 	// channels used by GameLoop
-	events       chan interface{}
-	snapshotChan chan *World
+	events chan interface{}
 
 	Named *ClassDef
 	// base class for everything else
@@ -121,11 +129,16 @@ type WorldBasics struct {
 	// RemoveFromInventory(Object)
 	// SetFocus(Thing)
 	// GetFocus() -> Thing
+
+	// room where players start
+	Lobby *Object
+
+	// room where objects live before they're needed
+	Nowhere *Object
 }
 
 type NewPlayerEvent struct {
 	sessionID    string
-	name         string
 	playerIDChan chan int
 }
 
@@ -140,7 +153,7 @@ type GameEvent struct {
 	args      []string
 }
 
-func (world *WorldBasics) eventLoop() {
+func (world *WorldBasics) eventLoop(newSnapshot func(*World)) {
 	// read from events until channel is closed. For each event, update world and
 	// send a fresh snapshot of the world to snapshotChan
 	for {
@@ -163,12 +176,12 @@ func (world *WorldBasics) eventLoop() {
 		log.Printf("Sending out snapshot")
 		// take a snapshot and notify anyone listening the new state of the world
 		snapshot := world.World.Clone()
-		world.snapshotChan <- snapshot
+		newSnapshot(snapshot)
 	}
 }
 
 func handleNewPlayerEvent(world *WorldBasics, e *NewPlayerEvent) {
-	player := world.AddPlayer(e.name, world.getInitialRoom())
+	player := world.AddPlayer("", world.Lobby)
 	world.sessions[e.sessionID] = &Session{playerID: player.ID}
 	e.playerIDChan <- player.ID
 	close(e.playerIDChan)

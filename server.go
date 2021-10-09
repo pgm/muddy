@@ -22,13 +22,16 @@ type Universe struct {
 	worlds                  map[string]*WorldBasics
 	clients                 map[int]*Client
 	clientCountPerSessionID map[string]int
+	worldBuilder            func() *WorldBasics
 }
 
-func newUniverse() *Universe {
+func newUniverse(worldBuilder func() *WorldBasics) *Universe {
 	return &Universe{events: make(chan interface{}),
 		worlds:                  make(map[string]*WorldBasics),
 		clients:                 make(map[int]*Client),
-		clientCountPerSessionID: make(map[string]int)}
+		clientCountPerSessionID: make(map[string]int),
+		worldBuilder:            worldBuilder,
+	}
 }
 
 func (universe *Universe) eventLoop() {
@@ -48,8 +51,11 @@ func (universe *Universe) eventLoop() {
 			world, worldExists := universe.worlds[e.client.worldID]
 			if !worldExists {
 				log.Printf("Creating world %s", e.client.worldID)
-				world = NewWorldBasics(NewWorld())
-				go world.eventLoop()
+				world = universe.worldBuilder()
+				go world.eventLoop(func(w *World) {
+					universe.events <- &NewSnapshotEvent{snapshot: w, worldID: e.client.worldID}
+				})
+				universe.worlds[e.client.worldID] = world
 			}
 
 			existingClientCount := universe.clientCountPerSessionID[e.client.sessionID]
@@ -81,7 +87,9 @@ func (universe *Universe) eventLoop() {
 
 		case *NewSnapshotEvent:
 			for _, client := range clients {
-				client.snapshotChan <- &PlayerSnapshot{snapshot: e.snapshot, playerID: client.playerID}
+				if e.worldID == client.worldID {
+					client.snapshotChan <- &PlayerSnapshot{snapshot: e.snapshot, playerID: client.playerID}
+				}
 			}
 		}
 	}
@@ -220,8 +228,8 @@ func inboundMessageLoop(client *Client) {
 	}
 }
 
-func createServer() *http.Server {
-	universe := newUniverse()
+func createServer(worldBuilder func() *WorldBasics) *http.Server {
+	universe := newUniverse(worldBuilder)
 	go universe.eventLoop()
 
 	r := mux.NewRouter()
@@ -248,8 +256,8 @@ func createListener(addr string) net.Listener {
 	return ln
 }
 
-func Start(addr string) {
-	srv := createServer()
+func Start(addr string, worldBuilder func() *WorldBasics) {
+	srv := createServer(worldBuilder)
 	ln := createListener(addr)
 
 	err := srv.Serve(ln)
