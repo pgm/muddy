@@ -2,6 +2,7 @@ package muddy
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -140,7 +141,7 @@ func (obj *Object) Call(ctx *Context, methodName string, args ...interface{}) in
 		for methodName := range obj.classDef.methodDispatch {
 			methodNames = append(methodNames, methodName)
 		}
-		panic(fmt.Sprintf("Could not find method \"%s\" on class \"%s\" (Methods: %v)", methodName, obj.classDef.Name, methodNames))
+		log.Fatalf("Could not find method \"%s\" on class \"%s\" (Methods: %v)", methodName, obj.classDef.Name, methodNames)
 	}
 	return method(obj, ctx, args)
 }

@@ -100,9 +100,9 @@ func (universe *Universe) eventLoop() {
 }
 
 type ClientMessage struct {
-	ObjectID int
-	Method   string
-	Args     []string
+	ObjectID *int     `json:"objectID"`
+	Method   *string  `json:"method"`
+	Args     []string `json:"args"`
 }
 
 func handleMessage(sessionID string, world *WorldBasics, messageJSON []byte) {
@@ -110,7 +110,12 @@ func handleMessage(sessionID string, world *WorldBasics, messageJSON []byte) {
 	if err := json.Unmarshal(messageJSON, &message); err != nil {
 		log.Printf("failed to unmarshal: %v", err)
 	} else {
-		world.events <- &GameEvent{sessionID: sessionID, objectID: message.ObjectID, method: message.Method, args: message.Args}
+		if message.ObjectID == nil || message.Method == nil {
+			log.Printf("Required field on message was missing (message: %s)", messageJSON)
+		} else {
+			log.Printf("sending game event to world (sessionID: %s, objectID: %d, method: %s, args: %v)", sessionID, *message.ObjectID, *message.Method, message.Args)
+			world.events <- &GameEvent{sessionID: sessionID, objectID: *message.ObjectID, method: *message.Method, args: message.Args}
+		}
 	}
 }
 

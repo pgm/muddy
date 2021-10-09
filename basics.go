@@ -194,8 +194,23 @@ func handleDisconnectedPlayerEvent(world *WorldBasics, e *DisconnectedPlayerEven
 
 func handleGameEvent(world *WorldBasics, event *GameEvent) {
 	target := world.World.objects[event.objectID]
+	if target == nil {
+		log.Printf("Invalid objectID: %d", event.objectID)
+		return
+	}
+
 	session := world.sessions[event.sessionID]
+	if session == nil {
+		log.Printf("Invalid sessionID: %s", event.sessionID)
+		return
+	}
+
 	player := world.World.objects[session.playerID]
+	if player == nil {
+		log.Printf("Invalid playerID: %d", session.playerID)
+		return
+	}
+
 	ctx := &Context{Player: player}
 
 	// copy array to one of the right type... Kind of annoying that this is necessary and not something

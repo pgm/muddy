@@ -30,7 +30,7 @@ func TestWSBasics(t *testing.T) {
 	c, _, err := websocket.DefaultDialer.Dial("ws://"+addr+"/game/gameid/sessionid/ws", nil)
 	assert.Nil(t, err)
 
-	err = c.WriteMessage(websocket.TextMessage, []byte(`{"name": "duck}`))
+	err = c.WriteMessage(websocket.TextMessage, []byte(`{"name": "duck"}`))
 	assert.Nil(t, err)
 
 	_, buf, err := c.ReadMessage()
