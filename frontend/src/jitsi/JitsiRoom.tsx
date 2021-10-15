@@ -8,13 +8,13 @@
 //     this.audioOutputDevices = [];
 //     this.listeners = {};
 //   }
-
+//🥕
 //   on(event, callback) {
 //     const listeners = this.listeners[event] || [];
 //     listeners.push(callback);
 //     this.listeners[event] = listeners;
 //   }
-
+// 
 //   fire(event, params) {
 //     const listeners = this.listeners[event] || [];
 //     listeners.forEach((l) => l(params));
@@ -94,23 +94,71 @@ export interface Track {
   track: JitsiTrack
 }
 
-interface JitsiTrack {
+export interface JitsiTrack {
   isLocal : () => boolean
-  getId : () => string
-  getParticipantId : () => string
-  getType : () => string
+
+  // getType() - returns string with the type of the track( "video" for the video tracks and "audio" for the audio tracks)
+  getType () : string
+
+  // mute() - mutes the track. Returns Promise.
+  // Note: This method is implemented only for the local tracks.
+  mute() : Promise<unknown> ;
+
+  //  unmute() - unmutes the track. Returns Promise.
+  // Note: This method is implemented only for the local tracks.  
+  unmute() : Promise<unknown>;
+  
+  isMuted() : boolean // - check if track is muted
+  
+  attach(container : any) : void // - attaches the track to the given container.
+  
+  detach(container : any) : void // - removes the track from the container.
+  
+  dispose() : Promise<unknown> // - disposes the track. If the track is added to a conference the track will be removed. Returns Promise.
+  //  Note: This method is implemented only for the local tracks.
+  
+  getId() : string //- returns unique string for the track.
+  
+  getParticipantId() : string // - returns id(string) of the track owner
+  // Note: This method is implemented only for the remote tracks.
+  
+  setAudioOutput(audioOutputDeviceId: string) : void // - sets new audio output device for track's DOM elements. Video tracks are ignored.
+  
+  getDeviceId() : string // - returns device ID associated with track (for local tracks only)
+  
+  isEnded() : boolean // - returns true if track is ended
+  
+  //- Applies the effect by swapping out the existing MediaStream on the JitsiTrack with the new
+  // MediaStream which has the desired effect. "undefined" is passed to this function for removing the effect and for
+  //restoring the original MediaStream on the JitsiTrack.
+  //  Note: This method is implemented only for the local tracks.
+  
+  setEffect(effect : JitsiEffect ) : void 
+   
+  
 }
 
-interface JitsiConference {
+export interface JitsiEffect {
+  // The following methods have to be defined for the effect instance.
+  
+  startEffect() : MediaStream // - Starts the effect and returns a new MediaStream that is to be swapped with the existing one.
+  
+  stopEffect() : void // - Stops the effect.
+  
+  isEnabled() : boolean // - Checks if the local track supports the effect.
+
+}
+
+export interface JitsiConference {
   leave : () => Promise<void>
   addEventListener : (event: string, handler: any) => void
   removeEventListener : (event : string, handler: any) => void
-  addTrack : (track: Track) => Promise<any>
-  removeTrack : (track: Track) => Promise<any>
+  addTrack : (track: JitsiTrack) => Promise<any>
+  removeTrack : (track: JitsiTrack) => Promise<any>
   join : () => void
 }
 
-interface JitsiConnection {
+export interface JitsiConnection {
   disconnect : () => void
   initJitsiConference : (roomId : string, options: any) => JitsiConference
   addEventListener: (event: string, handler: any) => void
@@ -131,10 +179,10 @@ export class JitsiRoom {
   onRoomTracksChanged: (()=>void )[];
   remoteTracks : Track[];
   activeRoom: JitsiConference | null
-  localAudioTrack : Track | null
-  localVideoTrack : Track | null
+  localAudioTrack : JitsiTrack | null
+  localVideoTrack : JitsiTrack | null
   connection : JitsiConnection | null
-
+//🧸
   constructor(serverURL : string) {
     this.serverURL = serverURL;
     this.connection = null;
@@ -157,7 +205,7 @@ export class JitsiRoom {
     listeners.forEach( ( l) => l(params) );
   }
 
-  setLocalVideoTrack(track : Track) {
+  setLocalVideoTrack(track : JitsiTrack) {
     if (this.activeRoom) {
       const room = this.activeRoom;
       const add = () => {
@@ -179,10 +227,10 @@ export class JitsiRoom {
     }
   }
 
-  setLocalAudioTrack(track : Track) {
+  setLocalAudioTrack(track : JitsiTrack) {
     console.log("ignoring onSetLocalAudioTrack", track);
   }
-
+//🛏
   disconnect() {
     const closeConnection = () => {
       if (this.connection) {
@@ -243,13 +291,15 @@ export class JitsiRoom {
     console.log("starting connect to ", roomId);
     let connection = new JitsiMeetJS.JitsiConnection(null, null, {
       hosts: {
-        domain: this.serverURL,
-        muc: `conference.${this.serverURL}`, // FIXME: use XEP-0030
+        domain: "rain.hashslash.dev",
+        muc: `conference.rain.hashslash.dev`, // FIXME: use XEP-0030
       },
-      serviceUrl: `wss://${this.serverURL}/xmpp-websocket?room=${roomId}`,
-      clientNode: `https://${this.serverURL}`,
+    //  serviceUrl: `wss://${this.serverURL}/xmpp-websocket?room=${roomId}`,
+      // serviceURL: `https://rain.hashslash.dev/http-bind?room=${roomId}`,
+      // clientNode: `https://rain.hashslash.dev`,
+      bosh: 'https://rain.hashslash.dev/http-bind'
     });
-
+// MITTEN IS GOING TO BED YOU MUST FIND HER BEDTIME CARROT,HER BED AND HER STUFFED ANIMAL!!!!!
     this.connection = connection;
 
     console.log("outside promise");

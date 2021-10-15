@@ -1,21 +1,23 @@
 import React, { useEffect } from "react";
 import { Settings } from "./Settings";
 import { Video, VideoStrip } from "./Video";
-import {Track } from "./JitsiRoom";
+import {Track , JitsiTrack} from "./JitsiRoom";
 
 interface LocalVideoProps {
     initialCameraDeviceId? : string
     initialaudioOutputDeviceId? : string
     initialMicDeviceId? : string
     setDefault? : (key : string, value : string | null | undefined) => void
-    audioTrack? : Track
-    videoTrack? : Track
-    setAudioTrack : (track : Track) => void
-    setVideoTrack : (track : Track) => void
+    audioTrack? : JitsiTrack
+    videoTrack? : JitsiTrack
+    setAudioTrack : (track : JitsiTrack) => void
+    setVideoTrack : (track : JitsiTrack) => void
   }
   
   declare namespace JitsiMeetJS {
     function init(opts : any) : any ;
+    function setLogLevel (level : any) : void;
+    let logLevels : any;
     function createLocalTracks(opts : any) : any ;
     let mediaDevices : any;
   };
@@ -32,6 +34,7 @@ interface LocalVideoProps {
     useEffect( () => {
       if (jitsiNeedsInit) {
         JitsiMeetJS.init({});
+        JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
         JitsiMeetJS.mediaDevices.enumerateDevices((devices : MediaDeviceInfo[])=> {
           console.log("enumerateDevices result: ", devices);
           setMediaDevices(devices);
@@ -87,11 +90,6 @@ interface LocalVideoProps {
     if (!loaded) {
       return <p>Loading</p>;
     } else {
-      const videos = [
-        { videoTrack: videoTrack, label: "Frank" },
-        { videoTrack: videoTrack, label: "Steve" },
-        { videoTrack: videoTrack, label: "Mary" },
-      ];
       return (
         <div>
             <ul>

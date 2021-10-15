@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Settings } from "./Settings";
 import { Video, VideoStrip } from "./Video";
+import {JitsiTrack} from "./JitsiRoom";
 
 export default {
   title: "Components/Video",
@@ -22,8 +23,8 @@ declare namespace JitsiMeetJS {
 
 let VideoWrapper = (props: VideoWrapperProps) => {
   const [loaded, setLoaded] = React.useState(false);
-  const [videoTrack, setVideoTrack] = React.useState(null);
-  const [audioTrack, setAudioTrack] = React.useState(null);
+  const [videoTrack, setVideoTrack] = React.useState<JitsiTrack | null>(null);
+  const [audioTrack, setAudioTrack] = React.useState<JitsiTrack | null> (null);
   const [cameraDeviceId, setCameraDeviceId] = React.useState< string| null | undefined>(props.initialCameraDeviceId);
   const [micDeviceId, setMicDeviceId] = React.useState< string| null | undefined>(props.initialMicDeviceId);
   const [audioOutputDeviceId, setAudioOutputDeviceId] = React.useState< string| null | undefined>(props.initialaudioOutputDeviceId);
@@ -81,10 +82,11 @@ let VideoWrapper = (props: VideoWrapperProps) => {
   if (!loaded) {
     return <p>Loading</p>;
   } else {
+    const v = videoTrack as JitsiTrack;
     const videos = [
-      { videoTrack: videoTrack, label: "Frank" },
-      { videoTrack: videoTrack, label: "Steve" },
-      { videoTrack: videoTrack, label: "Mary" },
+      { videoTrack: v, label: "Frank" },
+      { videoTrack: v, label: "Steve" },
+      { videoTrack: v, label: "Mary" },
     ];
     return (
       <div>

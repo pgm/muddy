@@ -1,5 +1,5 @@
 import React from "react";
-import { JitsiRoom, Track } from "./JitsiRoom";
+import { JitsiRoom, JitsiTrack, Track } from "./JitsiRoom";
 import { LocalVideo } from "./LocalVideo";
 import { Video } from "./Video";
 
@@ -13,8 +13,8 @@ interface WrapperProps {
 }
 
 interface TrackPair {
-  video?: Track
-  audio? : Track
+  video?: JitsiTrack
+  audio? : JitsiTrack
 }
 
 interface RemoteVideosProps {
@@ -30,9 +30,9 @@ const RemoteVideos = (props: RemoteVideosProps) => {
       remoteTracksByParticipant.set(t.participantId, pair);
     }
     if(t.type == "video") {
-      pair.video = t;
+      pair.video = t.track;
     } else if (t.type == "audio") {
-      pair.audio = t;
+      pair.audio = t.track;
     }
   })
 
@@ -43,7 +43,8 @@ const RemoteVideos = (props: RemoteVideosProps) => {
     {
    participantIds.map( (participantId, i) => {
     const tracks = remoteTracksByParticipant.get(participantId)
-    return <Video label={"video"+i} key={i} videoTrack={tracks?.video} audioTrack={tracks?.audio}/>
+    console.log("partID", participantId, tracks);
+    return <Video label={"video "+i} key={i} videoTrack={tracks?.video} audioTrack={tracks?.audio}/>
   }) } </div>);
 }
 
@@ -53,19 +54,20 @@ function setDefaultInLocalStorage(key: string, value : string | null | undefined
 
 const Wrapper = (props: WrapperProps) => {
   // const [last, setLast] = React.useState("starting");
-  const [videoTrack, setVideoTrack] = React.useState<Track | undefined>(undefined);
-  const [audioTrack, setAudioTrack] = React.useState<Track | undefined>(undefined);
+  const [videoTrack, setVideoTrack] = React.useState<JitsiTrack | undefined>(undefined);
+  const [audioTrack, setAudioTrack] = React.useState<JitsiTrack | undefined>(undefined);
 
-  const [remoteTracks, setRemoteTracks] = React.useState<Track[]>([]);
+  const [remoteTracks, setRemoteTracks] = React.useState<JitsiTrack[]>([]);
   const [jitsi, setJitsi] = React.useState<JitsiRoom|null>(null)
   const [initialized, setIntialized] = React.useState(false);
 
   React.useEffect( () => {
     const jitsi = new JitsiRoom(props.serverURL)
 
-    jitsi.on("roomTracksChanged", (tracks : Track[]) => {
-      console.log("roomTracksChanged", tracks);
-      setRemoteTracks(tracks);
+    jitsi.on("roomTracksChanged", (tracks : JitsiTrack[]) => {
+      const t = [...tracks];
+      console.log("roomTracksChanged", t);
+      setRemoteTracks(t);
     });
 
     // localFeed.on("videoChanged", (track) => {
@@ -115,6 +117,7 @@ const Wrapper = (props: WrapperProps) => {
 
   return <div>
     <LocalVideo videoTrack={videoTrack} audioTrack={audioTrack} setAudioTrack={setAudioTrack} setVideoTrack={setVideoTrack} setDefault={ setDefaultInLocalStorage } />
+    <div>{remoteTracks.length} Remotes</div>
     <RemoteVideos remoteTracks={remoteTracks}/>
   </div>
 

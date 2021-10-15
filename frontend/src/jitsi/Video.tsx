@@ -1,6 +1,6 @@
 import React from "react";
 import "./Video.css";
-
+import {JitsiTrack} from "./JitsiRoom";
 
 interface VideoStripProps {
   children : any;
@@ -25,8 +25,8 @@ export function VideoStrip (props : VideoStripProps) {
 
 interface VideoProps {
   label :string;
-  videoTrack?:any;
-  audioTrack?: any;
+  videoTrack?: JitsiTrack;
+  audioTrack?: JitsiTrack;
 }
 
 // props: videoTrack, audioTrack
@@ -63,6 +63,8 @@ export function Video (props: VideoProps) {
 
   return (
     <div className="video-block">
+      { videoTrack && <div>has video</div>}
+      { audioRef && <div>has audio</div>}
       <video autoPlay={true} ref={videoRef} />
       <span>{label}</span>
       <audio autoPlay={true} ref={audioRef} />
