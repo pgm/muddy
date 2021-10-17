@@ -57,13 +57,13 @@ export class RoomConnection {
     this.targetRoom = targetRoom;
   }
 
-  setLocalVideoTrack(track: JitsiTrack) {
+  setLocalTrack(trackName: "localVideoTrack" | "localAudioTrack", track: JitsiTrack) {
     if (
       this.state.state == "disconnected" ||
       this.state.state == "connecting" ||
       this.state.state == "disconnecting"
     ) {
-      this.localVideoTrack = track;
+      this[trackName] = track;
     } else if (this.state.state == "switching") {
       console.log(
         "Warning: there is a race condition here. Should probably disallow switching video while switching rooms somehow."
@@ -74,23 +74,29 @@ export class RoomConnection {
 
       const add = () => {
         return room.addTrack(track).then(() => {
-          this.localVideoTrack = track;
+          this[trackName] = track;
         });
       };
 
-      if (this.localVideoTrack) {
-        return room.removeTrack(this.localVideoTrack).then(() => {
-          this.localVideoTrack = null;
+      if (this[trackName]) {
+        return room.removeTrack(this[trackName] as JitsiTrack).then(() => {
+          this[trackName] = null;
           return add();
         });
       } else {
         return add();
       }
-    }
+    }    
+  }
+
+  setLocalVideoTrack(track: JitsiTrack) {
+    console.log("JitsiRoom setLocalVideoTrack", track);
+    this.setLocalTrack("localVideoTrack", track)
   }
 
   setLocalAudioTrack(track: JitsiTrack) {
-    console.log("ignoring onSetLocalAudioTrack", track);
+    console.log("JitsiRoom setLocalAudioTrack", track);
+    this.setLocalTrack("localAudioTrack", track)
   }
 
   //🛏

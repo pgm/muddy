@@ -113,5 +113,6 @@ let VideoWrapper = (props: VideoWrapperProps) => {
 }
 
 export const VideoStripDemo = () => {
-  return <VideoWrapper setDefault= { (a, b) => { } }  ></VideoWrapper>;
+  return <div style={ {width: "300px"} }>
+    <VideoWrapper setDefault= { (a, b) => { } }  ></VideoWrapper></div>;
 };

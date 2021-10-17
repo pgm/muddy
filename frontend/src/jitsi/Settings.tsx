@@ -1,4 +1,5 @@
 import React from "react";
+import "./Settings.css";
 
 interface Element {
   id: string
@@ -54,7 +55,7 @@ export const Settings = (props : SettingsProps) => {
   console.log("videoInputs", videoInputs)
 
     return (
-        <div>
+        <div className="jitsi-av-settings">
           <div>
           <span>Camera</span>
           <Selection options={videoInputs}

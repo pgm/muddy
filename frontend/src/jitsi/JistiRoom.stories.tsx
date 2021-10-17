@@ -10,6 +10,7 @@ export default {
 
 interface WrapperProps {
   serverURL: string;
+  showDebugInfo? : boolean;
 }
 
 interface TrackPair {
@@ -19,6 +20,7 @@ interface TrackPair {
 
 interface RemoteVideosProps {
   remoteTracks: Track[];
+  showDebugInfo?: boolean
 }
 
 const RemoteVideos = (props: RemoteVideosProps) => {
@@ -50,6 +52,7 @@ const RemoteVideos = (props: RemoteVideosProps) => {
             key={i}
             videoTrack={tracks?.video}
             audioTrack={tracks?.audio}
+            showDebugInfo={props.showDebugInfo}
           />
         );
       })}{" "}
@@ -96,13 +99,16 @@ const Wrapper = (props: WrapperProps) => {
 
   React.useEffect(() => {
     console.log(
-      "setting setLocalAudioTrack setLocalVideoTrack",
+      "useEffect: calling setLocalAudioTrack setLocalVideoTrack",
       videoTrack,
       audioTrack
     );
     if (jitsi) {
       if (audioTrack) {
+        console.log("has audiotrack")
         jitsi.setLocalAudioTrack(audioTrack);
+      } else {
+        console.log("no audiotrack set")
       }
       if (videoTrack) {
         jitsi.setLocalVideoTrack(videoTrack);
@@ -128,14 +134,16 @@ const Wrapper = (props: WrapperProps) => {
       <option id="room3">room3</option>
         </select>
       <LocalVideo
+        initialCameraDeviceId="default"
         videoTrack={videoTrack}
         audioTrack={audioTrack}
         setAudioTrack={setAudioTrack}
         setVideoTrack={setVideoTrack}
         setDefault={setDefaultInLocalStorage}
+        showDebugInfo={props.showDebugInfo}
       />
-      <div>{remoteTracks.length} Remotes</div>
-      <RemoteVideos remoteTracks={remoteTracks} />
+      <RemoteVideos remoteTracks={remoteTracks}         showDebugInfo={props.showDebugInfo}
+/>
     </div>
   );
 };
@@ -144,5 +152,5 @@ const Wrapper = (props: WrapperProps) => {
  * Primary UI component for user interaction
  */
 export const JitsiRoomTest = () => {
-  return <Wrapper serverURL="beta.meet.jit.si" />;
+  return <div style={ {width: "200px"} }><Wrapper  showDebugInfo={true} serverURL="beta.meet.jit.si" /></div>;
 };

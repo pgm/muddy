@@ -27,6 +27,7 @@ interface VideoProps {
   label :string;
   videoTrack?: JitsiTrack;
   audioTrack?: JitsiTrack;
+  showDebugInfo? : boolean;
 }
 
 // props: videoTrack, audioTrack
@@ -62,10 +63,12 @@ export function Video (props: VideoProps) {
   }, [videoTrack])
 
   return (
-    <div className="video-block">
-      { videoTrack && <div>has video</div>}
-      { audioRef && <div>has audio</div>}
-      <video autoPlay={true} ref={videoRef} />
+    <div className="video-block" >
+      {props.showDebugInfo &&
+      <div>({ videoTrack && <span>V</span>}
+      { audioRef && <span>A</span>})</div>
+      }
+      <video autoPlay={true} ref={videoRef} style={ {width: "100%"} }/>
       <span>{label}</span>
       <audio autoPlay={true} ref={audioRef} />
     </div>

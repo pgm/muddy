@@ -12,6 +12,7 @@ interface LocalVideoProps {
     videoTrack? : JitsiTrack
     setAudioTrack : (track : JitsiTrack) => void
     setVideoTrack : (track : JitsiTrack) => void
+    showDebugInfo?: boolean
   }
   
   declare namespace JitsiMeetJS {
@@ -29,6 +30,8 @@ interface LocalVideoProps {
     const [audioOutputDeviceId, setAudioOutputDeviceId] = React.useState< string| undefined>(props.initialaudioOutputDeviceId);
     const [jitsiNeedsInit, setJitsiNeedsInit] = React.useState(true);
     const [mediaDevices, setMediaDevices] = React.useState<MediaDeviceInfo[] | null>(null);
+    const [showSettings, setShowSettings] = React.useState(false);
+    const [isMuted, setIsMuted] = React.useState(false);
     const {videoTrack, audioTrack} = props;
   
     useEffect( () => {
@@ -67,24 +70,32 @@ interface LocalVideoProps {
   
     // JitsiMeetJS.createLocalTracks({devices:["video", "audio"], cameraDeviceId: "9c97a548678941d762706aed9328c7be47d26443d1806c9650c8d172673e31ac"}).then((e) => {console.log("got"); console.log(e)} );
     useEffect( () => {
-      if (cameraDeviceId && micDeviceId) {
-        if(props.setDefault) {
-          props.setDefault("micDeviceId", micDeviceId)
-        }
-  
+      if (cameraDeviceId) {
         console.log("creating local tracks")
-        JitsiMeetJS.createLocalTracks({ devices: ["video"], cameraDeviceId: cameraDeviceId, micDeviceId: micDeviceId }).then(
+        JitsiMeetJS.createLocalTracks({ devices: ["video"], cameraDeviceId: cameraDeviceId }).then(
           (tracks : any) => {
-            console.log("tracks", tracks);
+            console.log("created local video tracks", tracks);
             const _videoTrack = tracks.find((e: any) => e.type == "video");
-            const _audioTrack = tracks.find((e: any) => e.type == "audio");
             props.setVideoTrack(_videoTrack)
+            setLoaded(true)
+          }
+        );    
+      }
+    }, [cameraDeviceId])
+
+    useEffect( () => {
+      if (micDeviceId) {
+        console.log("creating local tracks")
+        JitsiMeetJS.createLocalTracks({ devices: ["audio"], micDeviceId: micDeviceId }).then(
+          (tracks : any) => {
+            console.log("created local audio tracks", tracks);
+            const _audioTrack = tracks.find((e: any) => e.type == "audio");
             props.setAudioTrack(_audioTrack)
             setLoaded(true)
           }
         );    
       }
-    }, [cameraDeviceId, micDeviceId])
+    }, [micDeviceId])
   
   
     if (!loaded) {
@@ -92,13 +103,24 @@ interface LocalVideoProps {
     } else {
       return (
         <div>
+            {props.showDebugInfo &&
             <ul>
             <li>cameraDeviceId: {cameraDeviceId}</li>
             <li>micDeviceId: {micDeviceId}</li>
             <li>audioOutputDeviceId: {audioOutputDeviceId}</li>
             <li>mediaDevices: {mediaDevices && "mediaDevicesPopulated"}</li>
             </ul>
-          {cameraDeviceId && micDeviceId && /* audioOutputDeviceId && */ mediaDevices &&
+            }
+          <Video label="You" videoTrack={videoTrack} showDebugInfo={props.showDebugInfo}/>
+          {!showSettings && 
+          <div className="video-controls">
+              <button onClick={() => {setShowSettings(true)}}>Settings</button>
+              {isMuted && <button onClick={() => {setIsMuted(false)}}>Unmute</button>}
+              {!isMuted && <button onClick={() => {setIsMuted(true)}}>Mute</button>}
+          </div>
+          }
+          { showSettings && mediaDevices &&
+          <div className="settings-controls">
           <Settings
             videoInputDeviceId={cameraDeviceId}
             audioInputDeviceId={micDeviceId}
@@ -107,12 +129,10 @@ interface LocalVideoProps {
             onVideoInputChange={setCameraDeviceId}
             onAudioInputChange={setMicDeviceId}
             onAudioOutputChange={setAudioOutputDeviceId}
-            /> }
-            <div className="video-controls">
-              <button>⚙️</button>
-              <button>🎤</button>
-            </div>
-          <Video label="You" videoTrack={videoTrack} />
+            /> 
+            <div><button onClick={ () => {setShowSettings(false)}}>Close settings</button></div>
+            </div>            
+            }
         </div>
         );  
     }
